@@ -4,7 +4,8 @@ from nba_api.stats.static import teams
 import pandas as pd
 from typing import cast
 
-seasons = ['2024-25','2025-26']
+
+seasons = ['2025-26']
 team_names = [
     'Atlanta Hawks', 'Boston Celtics', 'Brooklyn Nets', 'Charlotte Hornets',
     'Chicago Bulls', 'Cleveland Cavaliers', 'Dallas Mavericks', 'Denver Nuggets',
@@ -37,8 +38,6 @@ df = df.merge(df_opp, on="Game_ID", suffixes=("", "_OPP"))
 
 df = df[df["Team_ID"] != df["Team_ID_OPP"]]
 
-full_y = (df['WL'] == 'W').astype(int)
-
 # Fix MIN parsing before using it
 def parse_min(x):
     if pd.isna(x) or x is None:
@@ -62,8 +61,10 @@ raw_cols = ["PTS", "FGA", "OREB", "TOV", "FTA", "AST", "POSS", "PTS_OPP", "POSS_
 for col in raw_cols:
     df[f"{col}_ROLL"] = (
         df.groupby("Team_ID")[col]
-        .transform(lambda x: x.shift(1).rolling(10, min_periods=3).sum())
+        .transform(lambda x: x.shift(1).rolling(20, min_periods=3).sum())
     )
+
+
 
 # Derive features from consistently rolled values
 df["OFF_RATING"] = (df["PTS_ROLL"] / df["POSS_ROLL"]) * 100
@@ -71,8 +72,25 @@ df["AST_TOV"] = df["AST_ROLL"] / df["TOV_ROLL"]
 df["PACE"] = (df["POSS"] / df["MIN"]) * 48
 df["DEF_RATING"] = (df["PTS_OPP_ROLL"] / df["POSS_OPP_ROLL"]) * 100
 
-full_X = df[["OFF_RATING", "AST_TOV", "PACE", "DEF_RATING"]].dropna()
-full_Y = full_y[full_X.index].reset_index(drop=True)
+
+
+full_X = df[["Game_ID", "Team_ID", "WL", "OFF_RATING", "AST_TOV", "PACE", "DEF_RATING"]].dropna()
 full_X = full_X.reset_index(drop=True)
 
+# Merge each team's row with opponent's row on the same game
+full_X = full_X.merge(full_X, on="Game_ID", suffixes=("", "_OPP"))
+full_X = full_X[full_X["Team_ID"] != full_X["Team_ID_OPP"]]
+
+# Compute differences
+full_X["diff_OFF_RATING"] = full_X["OFF_RATING"] - full_X["OFF_RATING_OPP"]
+full_X["diff_AST_TOV"]    = full_X["AST_TOV"]    - full_X["AST_TOV_OPP"]
+full_X["diff_PACE"]       = full_X["PACE"]        - full_X["PACE_OPP"]
+full_X["diff_DEF_RATING"] = full_X["DEF_RATING"]  - full_X["DEF_RATING_OPP"]
+
+# Extract y before dropping
+full_Y = (full_X["WL"] == "W").astype(int).reset_index(drop=True)
+
+full_X = full_X[["diff_OFF_RATING", "diff_AST_TOV", "diff_PACE", "diff_DEF_RATING"]].reset_index(drop=True)
+
 print(f"Total rows: {len(full_X)}")
+print(f"Total labels: {len(full_Y)}")

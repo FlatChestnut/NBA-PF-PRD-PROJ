@@ -61,7 +61,11 @@ raw_cols = ["PTS", "FGA", "OREB", "TOV", "FTA", "AST", "POSS", "PTS_OPP", "POSS_
 for col in raw_cols:
     df[f"{col}_ROLL"] = (
         df.groupby("Team_ID")[col]
-        .transform(lambda x: x.shift(1).rolling(20, min_periods=3).sum())
+        .transform(lambda x: x.shift(1).rolling(15, min_periods=3).sum())
+    )
+    df[f"{col}_ROLL_SEASON"] = (
+        df.groupby("Team_ID")[col]
+        .transform(lambda x: x.shift(1).rolling(50, min_periods=2).sum())
     )
 
 
@@ -72,9 +76,14 @@ df["AST_TOV"] = df["AST_ROLL"] / df["TOV_ROLL"]
 df["PACE"] = (df["POSS"] / df["MIN"]) * 48
 df["DEF_RATING"] = (df["PTS_OPP_ROLL"] / df["POSS_OPP_ROLL"]) * 100
 
+# Derive features for the whole season
+df["OFF_RATING_SEASON"] = (df["PTS_ROLL_SEASON"] / df["POSS_ROLL_SEASON"]) * 100
+df["DEF_RATING_SEASON"] = (df["PTS_OPP_ROLL_SEASON"] / df["POSS_OPP_ROLL_SEASON"]) * 100
+df["AST_TOV_SEASON"] = df["AST_ROLL_SEASON"] / df["TOV_ROLL_SEASON"]
 
 
-full_X = df[["Game_ID", "Team_ID", "WL", "OFF_RATING", "AST_TOV", "PACE", "DEF_RATING"]].dropna()
+
+full_X = df[["Game_ID", "Team_ID", "WL", "OFF_RATING", "AST_TOV", "PACE", "DEF_RATING", "OFF_RATING_SEASON", "DEF_RATING_SEASON", "AST_TOV_SEASON"]].dropna()
 full_X = full_X.reset_index(drop=True)
 
 # Merge each team's row with opponent's row on the same game
@@ -87,10 +96,16 @@ full_X["diff_AST_TOV"]    = full_X["AST_TOV"]    - full_X["AST_TOV_OPP"]
 full_X["diff_PACE"]       = full_X["PACE"]        - full_X["PACE_OPP"]
 full_X["diff_DEF_RATING"] = full_X["DEF_RATING"]  - full_X["DEF_RATING_OPP"]
 
+full_X["diff_OFF_RATING_SEASON"] = full_X["OFF_RATING_SEASON"] - full_X["OFF_RATING_SEASON_OPP"]
+full_X["diff_DEF_RATING_SEASON"] = full_X["DEF_RATING_SEASON"] - full_X["DEF_RATING_SEASON_OPP"]
+full_X["diff_AST_TOV_SEASON"] = full_X["AST_TOV_SEASON"] - full_X["AST_TOV_SEASON_OPP"]
+
+#
+
 # Extract y before dropping
 full_Y = (full_X["WL"] == "W").astype(int).reset_index(drop=True)
 
-full_X = full_X[["diff_OFF_RATING", "diff_AST_TOV", "diff_PACE", "diff_DEF_RATING"]].reset_index(drop=True)
+full_X = full_X[["diff_OFF_RATING", "diff_AST_TOV", "diff_PACE", "diff_DEF_RATING", "diff_OFF_RATING_SEASON", "diff_DEF_RATING_SEASON", "diff_AST_TOV_SEASON"]].reset_index(drop=True)
 
 print(f"Total rows: {len(full_X)}")
 print(f"Total labels: {len(full_Y)}")

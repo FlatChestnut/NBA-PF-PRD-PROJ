@@ -5,14 +5,21 @@ import numpy as np
 import pandas as pd
 
 from data_collector import full_X, full_Y
-X_train, X_test, y_train, y_test = train_test_split(full_X, full_Y, test_size=0.2, random_state=42)
 
-# Scale the features
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled = scaler.transform(X_test)
+i = 0
+sum = 0
+for i in range(300):
+    X_train, X_test, y_train, y_test = train_test_split(full_X, full_Y, test_size=0.2, random_state=i*13)
 
-model = LogisticRegression()
-model.fit(X_train_scaled, y_train)
+    # Scale the features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
 
-print(f"Accuracy: {model.score(X_test_scaled, y_test)}")
+    model = LogisticRegression()
+    model.fit(X_train_scaled, y_train)
+
+    print(f"Accuracy: {model.score(X_test_scaled, y_test)}")
+    sum+=model.score(X_test_scaled, y_test)
+
+print(f"Average Accuracy: {sum/300}")

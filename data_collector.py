@@ -57,7 +57,7 @@ df["POSS_OPP"] = df["FGA_OPP"] + 0.44 * df["FTA_OPP"] - df["OREB_OPP"] + df["TOV
 df["POSS_OPP"] = df["POSS_OPP"].fillna(0)  # Handle any NaN values in possessions
 
 # Roll all relevant columns (no sleep — no API call)
-raw_cols = ["PTS", "FGA", "OREB", "TOV", "FTA", "AST", "POSS", "PTS_OPP", "POSS_OPP"]
+raw_cols = ["PTS", "FGA", "OREB", "TOV", "FTA", "AST", "POSS", "PTS_OPP", "POSS_OPP", "MIN"]
 for col in raw_cols:
     df[f"{col}_ROLL"] = (
         df.groupby("Team_ID")[col]
@@ -73,17 +73,18 @@ for col in raw_cols:
 # Derive features from consistently rolled values
 df["OFF_RATING"] = (df["PTS_ROLL"] / df["POSS_ROLL"]) * 100
 df["AST_TOV"] = df["AST_ROLL"] / df["TOV_ROLL"]
-df["PACE"] = (df["POSS"] / df["MIN"]) * 48
+df["PACE"] = (df["POSS_ROLL"] / df["MIN_ROLL"]) * 48
 df["DEF_RATING"] = (df["PTS_OPP_ROLL"] / df["POSS_OPP_ROLL"]) * 100
 
 # Derive features for the whole season
 df["OFF_RATING_SEASON"] = (df["PTS_ROLL_SEASON"] / df["POSS_ROLL_SEASON"]) * 100
 df["DEF_RATING_SEASON"] = (df["PTS_OPP_ROLL_SEASON"] / df["POSS_OPP_ROLL_SEASON"]) * 100
 df["AST_TOV_SEASON"] = df["AST_ROLL_SEASON"] / df["TOV_ROLL_SEASON"]
+df["PACE_SEASON"] = (df["POSS_ROLL_SEASON"] / df["MIN_ROLL_SEASON"]) * 48
 
 
-
-full_X = df[["Game_ID", "Team_ID", "WL", "OFF_RATING", "AST_TOV", "PACE", "DEF_RATING", "OFF_RATING_SEASON", "DEF_RATING_SEASON", "AST_TOV_SEASON"]].dropna()
+full_X = df[["Game_ID", "Team_ID", "WL", "OFF_RATING", "AST_TOV", "PACE", "DEF_RATING", 
+             "OFF_RATING_SEASON", "DEF_RATING_SEASON", "AST_TOV_SEASON", "PACE_SEASON"]].dropna()
 full_X = full_X.reset_index(drop=True)
 
 # Merge each team's row with opponent's row on the same game
@@ -96,16 +97,19 @@ full_X["diff_AST_TOV"]    = full_X["AST_TOV"]    - full_X["AST_TOV_OPP"]
 full_X["diff_PACE"]       = full_X["PACE"]        - full_X["PACE_OPP"]
 full_X["diff_DEF_RATING"] = full_X["DEF_RATING"]  - full_X["DEF_RATING_OPP"]
 
+#Differences for the whole season
 full_X["diff_OFF_RATING_SEASON"] = full_X["OFF_RATING_SEASON"] - full_X["OFF_RATING_SEASON_OPP"]
 full_X["diff_DEF_RATING_SEASON"] = full_X["DEF_RATING_SEASON"] - full_X["DEF_RATING_SEASON_OPP"]
 full_X["diff_AST_TOV_SEASON"] = full_X["AST_TOV_SEASON"] - full_X["AST_TOV_SEASON_OPP"]
-
+full_X["diff_PACE_SEASON"] = full_X["PACE_SEASON"] - full_X["PACE_SEASON_OPP"]
 #
 
 # Extract y before dropping
 full_Y = (full_X["WL"] == "W").astype(int).reset_index(drop=True)
 
-full_X = full_X[["diff_OFF_RATING", "diff_AST_TOV", "diff_PACE", "diff_DEF_RATING", "diff_OFF_RATING_SEASON", "diff_DEF_RATING_SEASON", "diff_AST_TOV_SEASON"]].reset_index(drop=True)
+full_X = full_X[["diff_OFF_RATING", "diff_AST_TOV", "diff_PACE", "diff_DEF_RATING", 
+                 "diff_OFF_RATING_SEASON", "diff_DEF_RATING_SEASON", "diff_AST_TOV_SEASON", 
+                 "PACE_SEASON"]].reset_index(drop=True)
 
 print(f"Total rows: {len(full_X)}")
 print(f"Total labels: {len(full_Y)}")

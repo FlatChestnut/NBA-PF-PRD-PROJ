@@ -25,9 +25,17 @@ for season in seasons:
         sleep(1)
         print(f"Done: {team} {season}")
 
+
+
 df = cast(pd.DataFrame, pd.concat(all_data, ignore_index=True))
 
 df = df.sort_values(['Team_ID', 'GAME_DATE']).reset_index(drop=True)
+
+df_opp = df.copy()
+
+df = df.merge(df_opp, on="Game_ID", suffixes=("", "_OPP"))
+
+df = df[df["Team_ID"] != df["Team_ID_OPP"]]
 
 full_y = (df['WL'] == 'W').astype(int)
 
@@ -45,9 +53,12 @@ def parse_min(x):
 df["MIN"] = df["MIN"].apply(parse_min)
 # Compute single-game possession estimate
 df["POSS"] = df["FGA"] + 0.44 * df["FTA"] - df["OREB"] + df["TOV"]
+df["POSS"] = df["POSS"].fillna(0)  # Handle any NaN values in possessions
+df["POSS_OPP"] = df["FGA_OPP"] + 0.44 * df["FTA_OPP"] - df["OREB_OPP"] + df["TOV_OPP"]
+df["POSS_OPP"] = df["POSS_OPP"].fillna(0)  # Handle any NaN values in possessions
 
 # Roll all relevant columns (no sleep — no API call)
-raw_cols = ["PTS", "FGA", "OREB", "TOV", "FTA", "AST", "POSS"]
+raw_cols = ["PTS", "FGA", "OREB", "TOV", "FTA", "AST", "POSS", "PTS_OPP", "POSS_OPP"]
 for col in raw_cols:
     df[f"{col}_ROLL"] = (
         df.groupby("Team_ID")[col]
@@ -58,8 +69,9 @@ for col in raw_cols:
 df["OFF_RATING"] = (df["PTS_ROLL"] / df["POSS_ROLL"]) * 100
 df["AST_TOV"] = df["AST_ROLL"] / df["TOV_ROLL"]
 df["PACE"] = (df["POSS"] / df["MIN"]) * 48
+df["DEF_RATING"] = (df["PTS_OPP_ROLL"] / df["POSS_OPP_ROLL"]) * 100
 
-full_X = df[["OFF_RATING", "AST_TOV", "PACE"]].dropna()
+full_X = df[["OFF_RATING", "AST_TOV", "PACE", "DEF_RATING"]].dropna()
 full_Y = full_y[full_X.index].reset_index(drop=True)
 full_X = full_X.reset_index(drop=True)
 

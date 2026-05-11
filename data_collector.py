@@ -1,0 +1,66 @@
+from time import sleep
+from nba_api.stats.endpoints import teamgamelog
+from nba_api.stats.static import teams
+import pandas as pd
+from typing import cast
+
+seasons = ['2014-15', '2015-16']
+team_names = [
+    'Atlanta Hawks', 'Boston Celtics', 'Brooklyn Nets', 'Charlotte Hornets',
+    'Chicago Bulls', 'Cleveland Cavaliers', 'Dallas Mavericks', 'Denver Nuggets',
+    'Detroit Pistons', 'Golden State Warriors', 'Houston Rockets', 'Indiana Pacers',
+    'Los Angeles Clippers', 'Los Angeles Lakers', 'Memphis Grizzlies', 'Miami Heat',
+    'Milwaukee Bucks', 'Minnesota Timberwolves', 'New Orleans Pelicans', 'New York Knicks',
+    'Oklahoma City Thunder', 'Orlando Magic', 'Philadelphia 76ers', 'Phoenix Suns',
+    'Portland Trail Blazers', 'Sacramento Kings', 'San Antonio Spurs', 'Toronto Raptors',
+    'Utah Jazz', 'Washington Wizards'
+]
+
+all_data = []
+for season in seasons:
+    for team in team_names:
+        team_id = teams.find_teams_by_full_name(team)[0]['id']
+        data = teamgamelog.TeamGameLog(season=season, team_id=team_id).get_data_frames()[0]
+        all_data.append(data)
+        sleep(1)
+        print(f"Done: {team} {season}")
+
+df = cast(pd.DataFrame, pd.concat(all_data, ignore_index=True))
+
+df = df.sort_values(['Team_ID', 'GAME_DATE']).reset_index(drop=True)
+
+full_y = (df['WL'] == 'W').astype(int)
+
+# Fix MIN parsing before using it
+def parse_min(x):
+    if pd.isna(x) or x is None:
+        return None
+    if isinstance(x, (int, float)):
+        return float(x)  # already numeric, no parsing needed
+    parts = str(x).split(":")
+    if len(parts) == 2:
+        return int(parts[0]) + int(parts[1]) / 60
+    return float(x)
+
+df["MIN"] = df["MIN"].apply(parse_min)
+# Compute single-game possession estimate
+df["POSS"] = df["FGA"] + 0.44 * df["FTA"] - df["OREB"] + df["TOV"]
+
+# Roll all relevant columns (no sleep — no API call)
+raw_cols = ["PTS", "FGA", "OREB", "TOV", "FTA", "AST", "POSS"]
+for col in raw_cols:
+    df[f"{col}_ROLL"] = (
+        df.groupby("Team_ID")[col]
+        .transform(lambda x: x.shift(1).rolling(10, min_periods=3).sum())
+    )
+
+# Derive features from consistently rolled values
+df["OFF_RATING"] = (df["PTS_ROLL"] / df["POSS_ROLL"]) * 100
+df["AST_TOV"] = df["AST_ROLL"] / df["TOV_ROLL"]
+df["PACE"] = (df["POSS"] / df["MIN"]) * 48
+
+full_X = df[["OFF_RATING", "AST_TOV", "PACE"]].dropna()
+full_Y = full_y[full_X.index].reset_index(drop=True)
+full_X = full_X.reset_index(drop=True)
+
+print(f"Total rows: {len(full_X)}")

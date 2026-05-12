@@ -6,15 +6,25 @@ from typing import cast
 team1 = input("Enter the your team's name: ")
 team2 = input("Enter the opposing team's name: ")
 
+def get_season(date_str):
+    date = pd.to_datetime(date_str)
+    year = date.year
+    month = date.month
+    if month < 7:
+        start_year = year - 1
+    else:
+        start_year = year
+    return f"{start_year}-{str(start_year + 1)[-2:]}"
+
 date1 = input("Enter the game date for the first team (YYYY-MM-DD): ")
 sample_size1 = int(input("Enter the number of samples to use for training for the first team (e.g., 10): "))
 game_date1 = str(date1).split("-")
-season1 = game_date1[0] + "-" + str(int(game_date1[0]) + 1)[-2:]
+season1 = get_season(date1)
 
 date2 = input("Enter the game date for the second team (YYYY-MM-DD): ")
 sample_size2 = int(input("Enter the number of samples to use for training for the second team (e.g., 10): "))
 game_date2 = str(date2).split("-")
-season2 = game_date2[0] + "-" + str(int(game_date2[0]) + 1)[-2:]
+season2 = get_season(date2)
 
 def parse_min(x):
     if pd.isna(x) or x is None:

@@ -14,4 +14,5 @@ model.fit(X_train_scaled, full_Y)
 
 
 joblib.dump(model, 'saved_model.pkl')
-print("Model saved successfully!")
+joblib.dump(scaler, 'scaler.pkl')
+print("Model and scaler saved successfully!")

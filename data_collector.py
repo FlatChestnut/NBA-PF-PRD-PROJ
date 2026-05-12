@@ -77,7 +77,7 @@ for col in raw_cols:
     )
     df[f"{col}_ROLL_SEASON"] = (
         df.groupby("Team_ID")[col]
-        .transform(lambda x: x.shift(1).rolling(50, min_periods=2).sum())
+        .transform(lambda x: x.shift(1).rolling(82, min_periods=2).sum())
     )
 
 

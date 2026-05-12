@@ -69,7 +69,7 @@ df["POSS_OPP"] = df["FGA_OPP"] + 0.44 * df["FTA_OPP"] - df["OREB_OPP"] + df["TOV
 df["POSS_OPP"] = df["POSS_OPP"].fillna(0)  # Handle any NaN values in possessions
 
 # Roll all relevant columns (no sleep — no API call)
-raw_cols = ["PTS", "FGA", "OREB", "TOV", "FTA", "AST", "POSS", "PTS_OPP", "POSS_OPP", "MIN"]
+raw_cols = ["PTS", "FGA", "OREB", "TOV", "FTA", "AST", "POSS", "PTS_OPP", "POSS_OPP", "MIN", "HOME"]
 for col in raw_cols:
     df[f"{col}_ROLL"] = (
         df.groupby("Team_ID")[col]
@@ -110,6 +110,7 @@ full_X["diff_AST_TOV"]    = full_X["AST_TOV"]    - full_X["AST_TOV_OPP"]
 full_X["diff_PACE"]       = full_X["PACE"]        - full_X["PACE_OPP"]
 full_X["diff_DEF_RATING"] = full_X["DEF_RATING"]  - full_X["DEF_RATING_OPP"]
 full_X["diff_REST_DAYS"] = full_X["REST_DAYS"]  - full_X["REST_DAYS_OPP"]
+full_X["diff_HOME"] = full_X["HOME"] - full_X["HOME_OPP"]
 
 
 
@@ -125,7 +126,7 @@ full_Y = (full_X["WL"] == "W").astype(int).reset_index(drop=True)
 
 full_X = full_X[["diff_OFF_RATING", "diff_AST_TOV", "diff_PACE", "diff_DEF_RATING", 
                  "diff_OFF_RATING_SEASON", "diff_DEF_RATING_SEASON", "diff_AST_TOV_SEASON", 
-                 "diff_PACE_SEASON", "HOME", "diff_REST_DAYS"]].reset_index(drop=True)
+                 "diff_PACE_SEASON", "HOME_OPP", "diff_REST_DAYS"]].reset_index(drop=True)
 
 print(f"Total rows: {len(full_X)}")
 print(f"Total labels: {len(full_Y)}")

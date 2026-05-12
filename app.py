@@ -27,7 +27,7 @@ def parse_min(x):
     return float(x)
 
 def get_team_stats(team_name, season, sample_size, target_date):
-
+    
     stats = []
 
     target_date = pd.to_datetime(target_date)
@@ -45,6 +45,8 @@ def get_team_stats(team_name, season, sample_size, target_date):
     df["GAME_DATE"],
     format="%b %d, %Y"
     )
+
+
 
     # only keep games before target date
     df = cast(
@@ -97,6 +99,21 @@ def get_team_stats(team_name, season, sample_size, target_date):
             )
         )
 
+
+    raw_cols = [
+        "OFF_RATING_SEASON", "DEF_RATING_SEASON", "AST_TOV_SEASON", "PACE_SEASON", 
+    ]
+    for col in raw_cols:
+        df[f"{col}"] = (
+            df.groupby("Team_ID")[col]
+            .transform(
+                lambda x:
+                    x.shift(1)
+                     .rolling(82, min_periods=3)
+                     .sum()
+            )
+        )
+
     # advanced metrics
     df["OFF_RATING"] = (df["PTS_ROLL"] / df["POSS_ROLL"]) * 100
     df["AST_TOV"] = df["AST_ROLL"] / df["TOV_ROLL"]
@@ -104,6 +121,8 @@ def get_team_stats(team_name, season, sample_size, target_date):
     df["DEF_RATING"] = (
         df["PTS_OPP_ROLL"] / df["POSS_OPP_ROLL"]
     ) * 100
+
+    df["REST_DAYS"] = (df["GAME_DATE"].iloc[-1] - df["GAME_DATE"].iloc[-2]).dt.days
 
     df = cast(
     pd.DataFrame,
@@ -121,17 +140,27 @@ def get_team_stats(team_name, season, sample_size, target_date):
             f"Not enough games before {target_date} for {team_name}"
         )
         
+    
+    df["HOME"] = df["MATCHUP"].apply(
+    lambda x: 1 if "vs." in x else 0
+    )
 
-    stats.append({
-        "OFF_RATING": df["OFF_RATING"].iloc[-1],
-        "AST_TOV": df["AST_TOV"].iloc[-1],
-        "PACE": df["PACE"].iloc[-1],
-        "DEF_RATING": df["DEF_RATING"].iloc[-1]
-    })
-    print(df[["GAME_DATE", "AST_ROLL", "TOV_ROLL", "OFF_RATING", "DEF_RATING"]])
+    stats.append(df["OFF_RATING"].iloc[-1],df["AST_TOV"].iloc[-1],
+        df["PACE"].iloc[-1], df["DEF_RATING"].iloc[-1], df["OFF_RATING_SEASON"].iloc[-1], df["DEF_RATING_SEASON"].iloc[-1], df["AST_TOV_SEASON"].iloc[-1], 
+                 df["PACE_SEASON"].iloc[-1], df["HOME"].iloc[-1], df["REST_DAYS"].iloc[-1])
+    
     return stats
 
 team1_stats = get_team_stats(team1, season1, sample_size1, date1)
 team2_stats = get_team_stats(team2, season2, sample_size2, date2)
-print(f"{team1} stats: {team1_stats}")
-print(f"{team2} stats: {team2_stats}")
+stats = [team1_stats[0]["OFF_RATING"] - team2_stats[0]["OFF_RATING"],
+         team1_stats[0]["AST_TOV"] - team2_stats[0]["AST_TOV"],
+         team1_stats[0]["PACE"] - team2_stats[0]["PACE"],
+         team1_stats[0]["DEF_RATING"] - team2_stats[0]["DEF_RATING"],
+         team1_stats[0]["OFF_RATING_SEASON"] - team2_stats[0]["OFF_RATING_SEASON"],
+         team1_stats[0]["DEF_RATING_SEASON"] - team2_stats[0]["DEF_RATING_SEASON"],
+         team1_stats[0]["AST_TOV_SEASON"] - team2_stats[0]["AST_TOV_SEASON"],
+         team1_stats[0]["PACE_SEASON"] - team2_stats[0]["PACE_SEASON"],
+         team1_stats[0]["HOME"] - team2_stats[0]["HOME"],
+         team1_stats[0]["REST_DAYS"] - team2_stats[0]["REST_DAYS"]]
+print(stats)

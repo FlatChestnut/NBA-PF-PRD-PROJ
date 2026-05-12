@@ -126,7 +126,7 @@ full_Y = (full_X["WL"] == "W").astype(int).reset_index(drop=True)
 
 full_X = full_X[["diff_OFF_RATING", "diff_AST_TOV", "diff_PACE", "diff_DEF_RATING", 
                  "diff_OFF_RATING_SEASON", "diff_DEF_RATING_SEASON", "diff_AST_TOV_SEASON", 
-                 "diff_PACE_SEASON", "HOME_OPP", "diff_REST_DAYS"]].reset_index(drop=True)
+                 "diff_PACE_SEASON", "diff_HOME", "diff_REST_DAYS"]].reset_index(drop=True)
 
 print(f"Total rows: {len(full_X)}")
 print(f"Total labels: {len(full_Y)}")

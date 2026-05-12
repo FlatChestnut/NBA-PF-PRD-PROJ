@@ -83,7 +83,7 @@ def get_team_stats(team_name, season, sample_size, target_date):
     raw_cols = [
         "PTS", "FGA", "OREB", "TOV",
         "FTA", "AST", "POSS",
-        "PTS_OPP", "POSS_OPP"
+        "PTS_OPP", "POSS_OPP", "MIN"
     ]
 
     for col in raw_cols:
@@ -109,7 +109,7 @@ def get_team_stats(team_name, season, sample_size, target_date):
 
     df["OFF_RATING_SEASON"] = (df["PTS_SEASON"] / df["POSS_ROLL"]) * 100
     df["AST_TOV_SEASON"] = df["AST_SEASON"] / df["TOV_SEASON"]
-    df["PACE_SEASON"] = (df["POSS_SEASON"] / df["MIN"]) * 48
+    df["PACE_SEASON"] = (df["POSS_SEASON"] / df["MIN_SEASON"]) * 48
     df["DEF_RATING_SEASON"] = (
         df["PTS_OPP_SEASON"] / df["POSS_OPP_SEASON"]
     ) * 100
@@ -117,7 +117,7 @@ def get_team_stats(team_name, season, sample_size, target_date):
     # advanced metrics
     df["OFF_RATING"] = (df["PTS_ROLL"] / df["POSS_ROLL"]) * 100
     df["AST_TOV"] = df["AST_ROLL"] / df["TOV_ROLL"]
-    df["PACE"] = (df["POSS"] / df["MIN"]) * 48
+    df["PACE"] = (df["POSS"] / df["MIN_ROLL"]) * 48
     df["DEF_RATING"] = (
         df["PTS_OPP_ROLL"] / df["POSS_OPP_ROLL"]
     ) * 100
